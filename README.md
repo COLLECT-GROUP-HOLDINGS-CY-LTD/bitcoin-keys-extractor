@@ -1,6 +1,6 @@
 # Build app
 
-- [Install python v.3+](https://www.python.org/downloads/)
+- [Install python v.3+ and pip](https://www.python.org/downloads/)
 - Install pyinstaller and *ECDSA* lib:
     ```shell
     pip install pyinstaller ecdsa

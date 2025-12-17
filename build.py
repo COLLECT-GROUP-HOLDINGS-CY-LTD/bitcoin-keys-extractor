@@ -38,6 +38,16 @@ def build():
             'wif_converter.py'
         ]
         exe_name = name.lower().replace(' ', '-')
+        
+    if system == "Windows":
+        cmd.extend(['--distpath', 'dist/Windows'])
+        exe_name = 'Windows/' + exe_name
+    elif system == "Darwin":
+        cmd.extend(['--distpath', 'dist/MacOS'])
+        exe_name = 'MacOS/' + exe_name
+    elif system == "Linux":
+        cmd.extend(['--distpath', 'dist/Linux'])
+        exe_name = 'Linux/' + exe_name
 
     print(f"Building for {system}...")
     print(f"Command: {' '.join(cmd)}")
