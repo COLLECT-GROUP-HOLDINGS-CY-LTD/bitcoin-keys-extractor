@@ -3,17 +3,27 @@
 import tkinter as tk
 from tkinter import messagebox
 import hashlib
-import sys, subprocess
+import sys
+import subprocess
+import os
 
-# Try import ecdsa, install if missing
-try:
-    from ecdsa import SigningKey, SECP256k1
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "ecdsa"])
-    from ecdsa import SigningKey, SECP256k1
 
+# ========== ФУНКЦИЯ ДЛЯ СБОРКИ В EXE ==========
+def resource_path(relative_path):
+    """Получение корректного пути к ресурсам для PyInstaller"""
+    try:
+        # PyInstaller создает временную папку и хранит путь в _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+# ========== ОРИГИНАЛЬНЫЙ КОД С ИСПРАВЛЕНИЯМИ ==========
 # Base58 alphabet
 B58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
 
 def b58decode(b58_str: str) -> bytes:
     num = 0
@@ -27,6 +37,7 @@ def b58decode(b58_str: str) -> bytes:
     n_pad = len(b58_str) - len(b58_str.lstrip('1'))
     return b'\x00' * n_pad + combined
 
+
 def base58check_decode(s: str) -> bytes:
     raw = b58decode(s)
     data, checksum = raw[:-4], raw[-4:]
@@ -35,12 +46,14 @@ def base58check_decode(s: str) -> bytes:
         raise ValueError("Invalid checksum")
     return data
 
+
 def wif_to_privkey(wif: str) -> bytes:
     decoded = base58check_decode(wif)
     if decoded[0] not in (0x80, 0xEF):  # mainnet/testnet
         raise ValueError("Invalid WIF version byte")
     priv = decoded[1:33]
     return priv
+
 
 def priv_to_compressed_pubkey(priv: bytes) -> str:
     sk = SigningKey.from_string(priv, curve=SECP256k1)
@@ -50,6 +63,7 @@ def priv_to_compressed_pubkey(priv: bytes) -> str:
     prefix = b'\x02' if int.from_bytes(y, 'big') % 2 == 0 else b'\x03'
     return (prefix + x).hex()
 
+
 def center_window(win, width, height):
     """Center a Tkinter window on the screen"""
     screen_w = win.winfo_screenwidth()
@@ -57,6 +71,7 @@ def center_window(win, width, height):
     x = (screen_w // 2) - (width // 2)
     y = (screen_h // 2) - (height // 2)
     win.geometry(f"{width}x{height}+{x}+{y}")
+
 
 # --- GUI Functions ---
 def convert():
@@ -72,6 +87,7 @@ def convert():
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
+
 def copy_to_clipboard():
     pub_hex = result.get("1.0", tk.END).strip()
     if not pub_hex:
@@ -81,6 +97,7 @@ def copy_to_clipboard():
     root.clipboard_append(pub_hex)
     root.update()
     messagebox.showinfo("Copied", "Public key copied to clipboard!")
+
 
 # --- Disclaimer Page ---
 def show_main_app():
@@ -108,26 +125,46 @@ def show_main_app():
 
     root.mainloop()
 
-# --- Start with Disclaimer Window ---
-disclaimer_win = tk.Tk()
-disclaimer_win.title("Disclaimer")
-disclaimer_win.geometry("600x300")
-disclaimer_win.resizable(False, False)
-center_window(disclaimer_win, 600, 300)
 
-disclaimer_text = (
-    "⚠️ IMPORTANT DISCLAIMER ⚠️\n\n"
-    "This tool is for LOCAL use only.\n\n"
-    "- NEVER share your private key online.\n"
-    "- NEVER send your private key to anyone, not even tech team.\n"
-    "- Use this app only on a secure, offline computer if possible.\n\n"
-    "Click 'I Understand' to continue."
-)
+# ========== ОСНОВНОЙ БЛОК С ИСПРАВЛЕНИЯМИ ==========
+if __name__ == "__main__":
+    # УБЕРИТЕ динамическую установку зависимостей из кода!
+    # Вместо этого установите их заранее:
+    # pip install ecdsa
+    # или создайте requirements.txt
 
-label = tk.Label(disclaimer_win, text=disclaimer_text, wraplength=550, justify="left", padx=20, pady=20)
-label.pack()
+    try:
+        from ecdsa import SigningKey, SECP256k1
+    except ImportError as e:
+        messagebox.showerror(
+            "Missing Dependency",
+            f"Please install ecdsa first:\n\n"
+            f"Open terminal and run:\n"
+            f"pip install ecdsa\n\n"
+            f"Error: {str(e)}"
+        )
+        sys.exit(1)
 
-btn = tk.Button(disclaimer_win, text="I Understand", command=show_main_app)
-btn.pack(pady=20)
+    # --- Start with Disclaimer Window ---
+    disclaimer_win = tk.Tk()
+    disclaimer_win.title("Disclaimer")
+    disclaimer_win.geometry("600x300")
+    disclaimer_win.resizable(False, False)
+    center_window(disclaimer_win, 600, 300)
 
-disclaimer_win.mainloop()
+    disclaimer_text = (
+        "⚠️ IMPORTANT DISCLAIMER ⚠️\n\n"
+        "This tool is for LOCAL use only.\n\n"
+        "- NEVER share your private key online.\n"
+        "- NEVER send your private key to anyone, not even tech team.\n"
+        "- Use this app only on a secure, offline computer if possible.\n\n"
+        "Click 'I Understand' to continue."
+    )
+
+    label = tk.Label(disclaimer_win, text=disclaimer_text, wraplength=550, justify="left", padx=20, pady=20)
+    label.pack()
+
+    btn = tk.Button(disclaimer_win, text="I Understand", command=show_main_app)
+    btn.pack(pady=20)
+
+    disclaimer_win.mainloop()
